@@ -44,3 +44,11 @@ python -m pytest tests
 - Only `mospi.gov.in` URLs can be scraped.
 - Endpoint details come from MoSPI's own MCP server spec ([nso-india/esankhyiki-mcp](https://github.com/nso-india/esankhyiki-mcp), MIT). `backend/data/nas_indicators.json` is copied from that repo.
 - Chart.js 4.4.1 is vendored in `frontend/vendor` (MIT).
+
+## Tablet / phone version (no server)
+
+`hosted/` builds a single-file version of the dashboard that runs in any browser, so it works on a tablet. It includes the Overview, Reports (links plus the release cycle), Definitions and Import Excel tabs, and exports to Excel. It **cannot** fetch from MoSPI: there is no backend, so the live Data Explorer and the reports scraper aren't included. Instead, download a report's Excel file from MoSPI and open it in Import Excel.
+
+```bash
+python hosted/build.py   # writes hosted/dist/index.html from template.html + backend/data/*.json
+```
