@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>National Accounts Dashboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: sticky top bar with tab strip; one column of cards that becomes two at tablet-landscape width. */
+:root {
+  --bg: #f4f5f3; --surface: #fcfcfb; --surface-2: #eef0ec; --border: #dfe2dc;
+  --text: #0e1110; --text-2: #4d524f; --muted: #747a76; --accent: #2a78d6; --accent-ink: #ffffff;
+  --grid: #e6e8e3; --warn-bg: #fff4dc; --warn-ink: #634400; --critical: #d03b3b; --good: #0ca30c;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111312; --surface: #191b1a; --surface-2: #232624; --border: #323632;
+    --text: #eff1ee; --text-2: #c0c5c0; --muted: #8d938e; --accent: #3987e5; --grid: #2a2d2a;
+    --warn-bg: #362c12; --warn-ink: #f1d58d;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111312; --surface: #191b1a; --surface-2: #232624; --border: #323632;
+  --text: #eff1ee; --text-2: #c0c5c0; --muted: #8d938e; --accent: #3987e5; --grid: #2a2d2a;
+  --warn-bg: #362c12; --warn-ink: #f1d58d;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--font-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); }
+header.top .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-block: 10px; }
+.brand { min-width: 0; }
+.brand h1 { font: 600 18px/1.2 var(--font-display); margin: 0; letter-spacing: -0.01em; }
+.brand .sub { color: var(--muted); font-size: 12px; }
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; margin-left: auto; max-width: 100%; }
+nav.tabs a { text-decoration: none; color: var(--text-2); padding: 8px 12px; border-radius: 8px; white-space: nowrap; font-weight: 500; font-size: 14px; }
+nav.tabs a[aria-current="page"] { background: var(--surface-2); color: var(--text); }
+.theme-btn { border: 1px solid var(--border); background: var(--surface); color: var(--text-2); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+
+main.wrap { padding-block: 20px 56px; }
+section.view { display: flex; flex-direction: column; gap: 16px; }
+h2 { font: 600 24px/1.2 var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h3 { font: 600 16px/1.3 var(--font-display); margin: 0; }
+.lede { color: var(--text-2); margin: 0; max-width: 68ch; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.grid { display: grid; gap: 16px; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.kpi { gap: 2px; }
+.kpi .label { color: var(--text-2); font-size: 12px; letter-spacing: 0.02em; }
+.kpi .value { font: 600 30px/1.15 var(--font-display); font-variant-numeric: tabular-nums; }
+.kpi .meta { color: var(--muted); font-size: 12px; }
+.chart-box { position: relative; height: 300px; }
+.banner { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 14px; font-size: 13px; }
+.banner.error { background: color-mix(in srgb, var(--critical) 14%, var(--surface)); color: var(--text); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--text-2); min-width: 0; }
+input[type="search"], input[type="text"], select {
+  font: inherit; font-size: 14px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); max-width: 100%;
+}
+input[type="search"] { flex: 1 1 220px; }
+.btn { font: inherit; font-size: 14px; font-weight: 500; padding: 9px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: .55; cursor: progress; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: 13px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); border-radius: 99px; padding: 5px 12px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--surface); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-2); }
+.legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+.table-wrap { overflow: auto; max-height: 480px; border: 1px solid var(--border); border-radius: 8px; }
+table.data { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+table.data th { position: sticky; top: 0; background: var(--surface-2); cursor: pointer; white-space: nowrap; font-weight: 600; }
+table.data td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.count { color: var(--muted); font-size: 12px; }
+.gloss { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.gloss h3 { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: baseline; }
+.gloss .abbr { color: var(--accent); font: 600 13px var(--font-body); }
+.gloss p { margin: 0; color: var(--text-2); }
+.formula { font: 12px/1.5 var(--font-mono); background: var(--surface-2); padding: 6px 8px; border-radius: 6px; overflow-wrap: anywhere; }
+.note { color: var(--muted); font-size: 12px; }
+.tag { font-size: 11px; padding: 1px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); font-weight: 500; }
+.release { display: grid; grid-template-columns: 110px 1fr; gap: 4px 14px; padding: 12px 0; border-top: 1px solid var(--border); }
+.release:first-of-type { border-top: 0; }
+.release .when { font: 600 12px/1.4 var(--font-display); color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.release .m { color: var(--muted); font-size: 12px; }
+.links { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.linkcard { text-decoration: none; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface); display: flex; flex-direction: column; gap: 2px; }
+.linkcard:hover { border-color: var(--accent); }
+.linkcard .u { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.steps { margin: 0; padding-left: 20px; color: var(--text-2); display: flex; flex-direction: column; gap: 4px; }
+.drop { border: 2px dashed var(--border); border-radius: 12px; padding: 22px; text-align: center; color: var(--text-2); }
+.drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.empty { color: var(--muted); padding: 20px; text-align: center; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--text); color: var(--surface); padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 20; }
+select[multiple] { min-width: min(100%, 260px); }
+@media (max-width: 560px) { .release { grid-template-columns: 1fr; } nav.tabs { margin-left: 0; width: 100%; } .kpi .value { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><h1>National Accounts Dashboard</h1><div class="sub">India · MoSPI / NSO statistics</div></div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#overview" data-view="overview">Overview</a>
+      <a href="#live" data-view="live" id="liveTab" hidden>Live data</a>
+      <a href="#reports" data-view="reports">Reports</a>
+      <a href="#definitions" data-view="definitions">Definitions</a>
+      <a href="#import" data-view="import">Import Excel</a>
+    </nav>
+    <button class="theme-btn" id="themeToggle" type="button">Light / dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- OVERVIEW -->
+  <section class="view" id="overview">
+    <h2>Overview</h2>
+    <div class="banner" id="snapBanner"></div>
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid two">
+      <div class="card"><h3>GDP level, ₹ lakh crore</h3><div class="legend" id="lvlLegend"></div><div class="chart-box"><canvas id="lvlChart" aria-label="GDP level chart" role="img"></canvas></div></div>
+      <div class="card"><h3>Real GDP growth, % year-on-year</h3><div class="chart-box"><canvas id="growthChart" aria-label="Real GDP growth chart" role="img"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between"><h3>Data table</h3><button class="btn" id="ovExport" type="button">Export to Excel</button></div>
+      <div class="table-wrap" id="ovTable"></div>
+    </div>
+  </section>
+
+  <!-- LIVE DATA (standalone hosting only) -->
+  <section class="view" id="live" hidden>
+    <h2>Live data from MoSPI</h2>
+    <p class="lede">Queries MoSPI's National Accounts API directly from your browser. Indicators 1–22 are national; 23–34 are state-level and need a state code (37 = All-India). Quarterly data exists only for the 2022-23 base, current series.</p>
+    <div class="card">
+      <div class="toolbar">
+        <label class="field">Indicator<select id="lInd"></select></label>
+        <label class="field">Base year<select id="lBase"><option>2022-23</option><option>2011-12</option></select></label>
+        <label class="field">Series<select id="lSeries"><option>Current</option><option>Back</option></select></label>
+        <label class="field">Frequency<select id="lFreq"><option>Annually</option><option>Quarterly</option></select></label>
+        <label class="field">Year(s)<input type="text" id="lYear" placeholder="2023-24,2024-25"></label>
+        <label class="field" id="lStateWrap" hidden>State code(s)<input type="text" id="lState" placeholder="01–37"></label>
+        <button class="btn primary" id="lFetch" type="button">Fetch data</button>
+      </div>
+      <div class="note" id="lDef"></div>
+      <div id="lMsg"></div>
+    </div>
+    <div class="card" id="lChartCard" hidden>
+      <div class="toolbar" id="lControls"></div>
+      <div class="legend" id="lLegend"></div>
+      <div class="chart-box"><canvas id="lChart" aria-label="Live data chart" role="img"></canvas></div>
+    </div>
+    <div class="card" id="lTableCard" hidden>
+      <div class="toolbar">
+        <input type="search" id="lSearch" placeholder="Filter rows" aria-label="Filter rows">
+        <button class="btn" id="lExport" type="button">Export to Excel</button>
+      </div>
+      <div class="count" id="lCount"></div>
+      <div class="table-wrap" id="lTable"></div>
+    </div>
+  </section>
+
+  <!-- REPORTS -->
+  <section class="view" id="reports" hidden>
+    <h2>Reports &amp; publications</h2>
+    <p class="lede">The latest National Accounts reports are published on MoSPI's site. Open a page below, download a report's Excel annex, then bring it into <a href="#import">Import Excel</a> to chart and re-export it.</p>
+    <div class="links" id="sourceLinks"></div>
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between"><h3>National Accounts release cycle</h3><button class="btn" id="relExport" type="button">Export to Excel</button></div>
+      <div id="releaseList"></div>
+    </div>
+  </section>
+
+  <!-- DEFINITIONS -->
+  <section class="view" id="definitions" hidden>
+    <h2>Definitions</h2>
+    <p class="lede">Key concepts in India's National Accounts Statistics, following the System of National Accounts as applied by NSO, MoSPI.</p>
+    <div class="toolbar">
+      <input type="search" id="gSearch" placeholder="Search, e.g. GVA, deflator, PFCE" aria-label="Search definitions">
+      <button class="btn" id="gExport" type="button">Export to Excel</button>
+    </div>
+    <div class="chips" id="gCats"></div>
+    <div class="count" id="gCount"></div>
+    <div class="gloss" id="gList"></div>
+  </section>
+
+  <!-- IMPORT -->
+  <section class="view" id="import" hidden>
+    <h2>Import Excel</h2>
+    <p class="lede">Open a MoSPI statement or press-release annex (.xlsx, .xls or .csv) from your tablet's files. It's read on your device; nothing is uploaded.</p>
+    <div class="card">
+      <label class="drop" id="drop" for="iFile">
+        <strong>Choose a file</strong> or drop it here
+        <input type="file" id="iFile" accept=".xlsx,.xls,.xlsm,.csv" style="display:block;margin:10px auto 0;max-width:100%">
+      </label>
+      <div id="iMsg"></div>
+      <div class="chips" id="iTabs"></div>
+      <div class="note" id="iNotes"></div>
+    </div>
+    <div class="card" id="iChartCard" hidden>
+      <div class="toolbar" id="iControls"></div>
+      <div class="legend" id="iLegend"></div>
+      <div class="chart-box"><canvas id="iChart" aria-label="Imported data chart" role="img"></canvas></div>
+    </div>
+    <div class="card" id="iTableCard" hidden>
+      <div class="toolbar">
+        <input type="search" id="iSearch" placeholder="Filter rows" aria-label="Filter rows">
+        <button class="btn" id="iExport" type="button">Export to Excel</button>
+      </div>
+      <div class="count" id="iCount"></div>
+      <div class="table-wrap" id="iTable"></div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+"use strict";
+const GLOSSARY = [{"term":"Gross Domestic Product","abbr":"GDP","category":"Aggregates","definition":"The market value of all final goods and services produced within the domestic territory of a country during a period (a year or quarter). In India's national accounts GDP is derived as GVA at basic prices plus net taxes on products.","formula":"GDP = GVA at basic prices + Product taxes - Product subsidies","note":"Measured both at current prices (nominal) and constant prices (real, at base-year prices)."},{"term":"Gross Value Added","abbr":"GVA","category":"Aggregates","definition":"The value of output less the value of intermediate consumption. It measures the contribution of each producer, industry or sector to the economy. MoSPI reports GVA at basic prices by industry.","formula":"GVA = Value of output - Intermediate consumption"},{"term":"GVA at Basic Prices","abbr":"","category":"Valuation","definition":"GVA valued at basic prices, i.e. the amount receivable by the producer excluding taxes on products and including subsidies on products. It includes production taxes less production subsidies.","formula":"GVA at basic prices = CE + OS/MI + CFC + Production taxes - Production subsidies"},{"term":"GVA at Factor Cost","abbr":"","category":"Valuation","definition":"GVA valued at the cost of factors of production (labour, capital). It excludes all taxes on production and products and includes subsidies. Used as the headline measure in India before the 2011-12 base revision.","formula":"GVA at factor cost = GVA at basic prices - (Production taxes - Production subsidies)"},{"term":"Net Taxes on Products","abbr":"","category":"Valuation","definition":"Taxes payable per unit of a good or service (GST, excise duty, customs duty, etc.) minus subsidies payable per unit (food, fertiliser, petroleum subsidies, etc.). Bridges GVA at basic prices and GDP.","formula":"Net taxes on products = Product taxes - Product subsidies"},{"term":"Production Taxes / Subsidies","abbr":"","category":"Valuation","definition":"Taxes and subsidies on production that are not levied per unit of output, e.g. land revenue, stamp and registration fees, professional tax, and subsidies to railways or village and small industries."},{"term":"Net Domestic Product","abbr":"NDP","category":"Aggregates","definition":"GDP less consumption of fixed capital (depreciation). It represents domestic production net of the capital used up in producing it.","formula":"NDP = GDP - CFC"},{"term":"Consumption of Fixed Capital","abbr":"CFC","category":"Aggregates","definition":"The decline in the current value of the stock of fixed assets owned and used by producers as a result of physical deterioration, normal obsolescence or accidental damage during the period."},{"term":"Gross National Income","abbr":"GNI","category":"National income","definition":"GDP plus net primary income (compensation of employees and property and entrepreneurial income) receivable from the rest of the world.","formula":"GNI = GDP + Net primary income from abroad"},{"term":"Net National Income","abbr":"NNI","category":"National income","definition":"GNI less consumption of fixed capital. NNI at current prices is commonly referred to as 'national income'.","formula":"NNI = GNI - CFC"},{"term":"Per Capita Net National Income","abbr":"PCNNI","category":"National income","definition":"Net national income divided by the mid-year population. The standard measure of average income per person used in Indian official statistics.","formula":"Per capita NNI = NNI / Mid-year population"},{"term":"Gross National Disposable Income","abbr":"GNDI","category":"National income","definition":"GNI plus net other current transfers (e.g. remittances, grants) received from the rest of the world. It is the income available for final consumption and saving.","formula":"GNDI = GNI + Net other current transfers from abroad"},{"term":"Primary Income Receivable (Net) from Rest of the World","abbr":"","category":"National income","definition":"Compensation of employees and property income (interest, dividends, profits) received from non-residents less the same paid to non-residents."},{"term":"Private Final Consumption Expenditure","abbr":"PFCE","category":"Expenditure","definition":"Expenditure incurred by resident households and non-profit institutions serving households (NPISH) on final consumption goods and services, whether in the domestic market or abroad."},{"term":"Government Final Consumption Expenditure","abbr":"GFCE","category":"Expenditure","definition":"Current expenditure of general government (Centre, States, local bodies) on compensation of employees and purchase of goods and services, net of sales, for collective and individual consumption."},{"term":"Gross Fixed Capital Formation","abbr":"GFCF","category":"Expenditure","definition":"Acquisitions less disposals of produced fixed assets (buildings, machinery, equipment, intellectual property products, cultivated biological resources) by resident producers during the period. The main measure of investment."},{"term":"Change in Stocks","abbr":"CIS","category":"Expenditure","definition":"The value of entries into inventories (raw materials, work in progress, finished goods) less the value of withdrawals and recurrent losses during the period."},{"term":"Valuables","abbr":"","category":"Expenditure","definition":"Produced goods of considerable value acquired primarily as stores of value rather than for production or consumption, e.g. precious metals, gems, jewellery and works of art."},{"term":"Gross Capital Formation","abbr":"GCF","category":"Expenditure","definition":"The total of gross fixed capital formation, changes in stocks and acquisitions less disposals of valuables. In the industry-of-use presentation it is also shown by the industry that uses the assets.","formula":"GCF = GFCF + Change in stocks + Valuables"},{"term":"Exports and Imports of Goods and Services","abbr":"X, M","category":"Expenditure","definition":"Transactions in goods and services (sales, barter, gifts) between residents and non-residents. Net exports (X - M) enter the expenditure-side GDP."},{"term":"Discrepancies","abbr":"","category":"Expenditure","definition":"The difference between GDP estimated from the production side and the sum of expenditure components (PFCE + GFCE + GCF + net exports). Shown as a separate line because the two approaches use independent data sources.","formula":"Discrepancy = GDP - (PFCE + GFCE + GCF + X - M)"},{"term":"Gross Saving","abbr":"","category":"Saving & investment","definition":"Gross national disposable income less final consumption expenditure. Reported by institutional sector: households, non-financial corporations, financial corporations and general government.","formula":"Gross saving = GNDI - (PFCE + GFCE)"},{"term":"Saving Rate / Investment Rate","abbr":"","category":"Saving & investment","definition":"Gross saving and gross capital formation expressed as a percentage of GNDI or GDP respectively at current prices."},{"term":"Current Prices","abbr":"Nominal","category":"Prices & base year","definition":"Values measured at the prices prevailing in the year of reference. Growth at current prices combines volume growth and price change."},{"term":"Constant Prices","abbr":"Real","category":"Prices & base year","definition":"Values measured at the prices of a fixed base year, so that growth reflects changes in volume (quantity) only. Real GDP growth is the headline growth rate."},{"term":"Base Year","abbr":"","category":"Prices & base year","definition":"The reference year whose prices are used to value constant-price estimates and whose economic structure (weights, data sources, methods) anchors the series. India's series have used bases 2004-05, 2011-12 and 2022-23. Series with different base years are not directly comparable."},{"term":"Back Series","abbr":"","category":"Prices & base year","definition":"Estimates for years before the base year compiled to be comparable with the current base-year series (e.g. 2011-12 base estimates for 2004-05 to 2010-11)."},{"term":"Implicit Price Deflator","abbr":"IPD","category":"Prices & base year","definition":"The ratio of an aggregate at current prices to the same aggregate at constant prices, times 100. The GDP deflator is an economy-wide measure of inflation.","formula":"Deflator = (Current-price value / Constant-price value) x 100"},{"term":"Growth Rate","abbr":"","category":"Prices & base year","definition":"Percentage change over the same period of the previous year. For quarterly GDP, growth is year-on-year (Q over the same quarter of the previous year), not seasonally adjusted quarter-on-quarter.","formula":"Growth (%) = (X_t / X_t-1 - 1) x 100"},{"term":"Financial Year","abbr":"FY","category":"Release cycle","definition":"India's fiscal year from 1 April to 31 March, written e.g. 2024-25. Q1 = Apr-Jun, Q2 = Jul-Sep, Q3 = Oct-Dec, Q4 = Jan-Mar."},{"term":"First Advance Estimates","abbr":"FAE","category":"Release cycle","definition":"The first estimate of annual GDP for the current financial year, released in early January, based on partial-year indicators; used for Union Budget preparation."},{"term":"Second Advance Estimates","abbr":"SAE","category":"Release cycle","definition":"Revised annual estimate for the current financial year released at the end of February together with the Q3 quarterly estimates."},{"term":"Provisional Estimates","abbr":"PE","category":"Release cycle","definition":"Annual estimate for the just-completed financial year released at the end of May together with the Q4 quarterly estimates."},{"term":"First / Second / Third Revised Estimates","abbr":"FRE, SRE, TRE","category":"Release cycle","definition":"Successive revisions of an annual estimate as fuller data (e.g. ASI, budget documents, enterprise filings) becomes available, generally released at the end of February in the following years. The Third Revised Estimate is treated as final."},{"term":"Quarterly Estimates","abbr":"QE","category":"Release cycle","definition":"Estimates of GDP and GVA for each quarter, released about two months after the quarter ends (end of February, May, August and November)."},{"term":"Compensation of Employees","abbr":"CE","category":"Income approach","definition":"Total remuneration in cash or kind payable by an employer to an employee for work done, including employers' contributions to social security."},{"term":"Operating Surplus / Mixed Income","abbr":"OS / MI","category":"Income approach","definition":"The surplus from production after paying compensation of employees and production taxes. For unincorporated household enterprises, where owner's labour and capital returns cannot be separated, it is called mixed income."},{"term":"Institutional Sectors","abbr":"","category":"Classifications","definition":"Groups of resident units with similar economic behaviour: non-financial corporations (public and private), financial corporations, general government, households (including unincorporated enterprises) and NPISH."},{"term":"Industry Classification","abbr":"NIC","category":"Classifications","definition":"GVA is classified by industry following the National Industrial Classification: agriculture, forestry & fishing; mining & quarrying; manufacturing; electricity, gas, water & utilities; construction; trade, hotels, transport, communication & broadcasting; financial, real estate & professional services; public administration, defence & other services."},{"term":"Primary / Secondary / Tertiary Sector","abbr":"","category":"Classifications","definition":"Primary: agriculture, forestry, fishing, mining. Secondary: manufacturing, electricity/gas/water, construction. Tertiary (services): trade, transport, communication, finance, real estate, public administration and other services."},{"term":"Gross State Domestic Product","abbr":"GSDP","category":"State accounts","definition":"The state-level counterpart of GDP: value of all final goods and services produced within the geographical boundaries of a state. Compiled by State Directorates of Economics & Statistics and published by MoSPI."},{"term":"Net State Domestic Product / Per Capita NSDP","abbr":"NSDP","category":"State accounts","definition":"GSDP less consumption of fixed capital. Per capita NSDP divides NSDP by the state's population and is the usual measure of state per capita income."},{"term":"System of National Accounts","abbr":"SNA","category":"Framework","definition":"The international statistical standard for national accounts adopted by the UN Statistical Commission (SNA 2008; SNA 2025 being the latest update). India's national accounts broadly follow SNA 2008."},{"term":"Supply and Use Tables","abbr":"SUT","category":"Framework","definition":"Matrices showing how supplies of products from domestic industries and imports are used for intermediate consumption, final consumption, capital formation and exports. Used to reconcile production and expenditure estimates."},{"term":"National Statistics Office","abbr":"NSO","category":"Framework","definition":"The statistical wing of MoSPI (formed by merging CSO and NSSO) responsible for compiling and releasing national accounts estimates."}];
+const SNAPSHOT = {"title":"India GDP, 2011-12 to 2024-25 (2011-12 base series)","unit":"Rs. lakh crore","status":"Offline reference snapshot. Values are as published in MoSPI press releases up to the Provisional Estimates of May 2025 (2011-12 base), entered by hand and NOT verified against the source in this build. MoSPI has since moved to a 2022-23 base series. Use the Data Explorer (live MoSPI API) for current official figures.","columns":["Year","Real GDP (constant 2011-12 prices)","Nominal GDP (current prices)"],"rows":[["2011-12",87.36,87.36],["2012-13",92.13,99.44],["2013-14",98.01,112.34],["2014-15",105.28,124.68],["2015-16",113.69,137.72],["2016-17",123.08,153.92],["2017-18",131.44,170.9],["2018-19",139.93,188.87],["2019-20",145.35,201.04],["2020-21",136.87,198.54],["2021-22",150.22,235.97],["2022-23",161.65,268.9],["2023-24",176.51,301.23],["2024-25",187.97,330.68]]};
+const SERIES = [{"name":"Quarterly Estimates of GDP","frequency":"Quarterly","timing":"End of Feb, May, Aug and Nov (approx. T+2 months)","description":"Press note with GDP, GVA by industry and expenditure components for the latest quarter, at current and constant prices, with year-on-year growth."},{"name":"First Advance Estimates of Annual GDP","frequency":"Annual","timing":"Early January","description":"First estimate of GDP for the ongoing financial year, used for Union Budget preparation."},{"name":"Second Advance Estimates of Annual GDP","frequency":"Annual","timing":"End of February","description":"Revised estimate for the ongoing financial year, released with Q3 estimates and revisions of earlier years."},{"name":"Provisional Estimates of Annual GDP","frequency":"Annual","timing":"End of May","description":"Estimate for the just-completed financial year, released with Q4 quarterly estimates."},{"name":"Revised Estimates of National Income","frequency":"Annual","timing":"End of February","description":"First, Second and Third Revised Estimates for earlier years, incorporating fuller source data."},{"name":"National Accounts Statistics (NAS)","frequency":"Annual","timing":"Mid-year","description":"The annual flagship publication: detailed statements on aggregates, industry-wise GVA, capital formation, saving, institutional sector accounts, and consumption by purpose."},{"name":"State Domestic Product (GSDP/NSDP)","frequency":"Annual","timing":"Updated periodically","description":"State-wise GSDP, NSDP and per-capita income at current and constant prices, compiled with State DES."},{"name":"Supply and Use Tables / Input-Output Tables","frequency":"Periodic","timing":"Irregular","description":"Product-by-industry tables describing the structure of production and use in the economy."},{"name":"Sources and Methods of National Accounts","frequency":"Per base revision","timing":"With each new base year","description":"Methodology document describing data sources, coverage and compilation methods for every sector and aggregate."},{"name":"Advance Release Calendar","frequency":"Annual","timing":"Start of the year","description":"MoSPI's calendar of scheduled release dates for national accounts and other statistical products."}];
+const INDICATORS = [{"indicator_code":1,"name":"Gross Value Added","description":"Gross Value Added"},{"indicator_code":2,"name":"Net Taxes on Products","description":"Net Taxes on Products"},{"indicator_code":3,"name":"Taxes on Products","description":"Taxes on Products"},{"indicator_code":4,"name":"Subsidies on Products","description":"Subsidies on Products"},{"indicator_code":5,"name":"Gross Domestic Product","description":"Gross Domestic Product"},{"indicator_code":6,"name":"Consumption of Fixed Capital","description":"Consumption of Fixed Capital"},{"indicator_code":7,"name":"Net Domestic Product","description":"Net Domestic Product"},{"indicator_code":8,"name":"Gross Capital Formation by Industry of Use","description":"Gross Capital Formation by Industry of Use"},{"indicator_code":9,"name":"Gross Fixed Capital Formation","description":"Gross Fixed Capital Formation"},{"indicator_code":10,"name":"Private Final Consumption Expenditure","description":"Private Final Consumption Expenditure"},{"indicator_code":11,"name":"Government Final Consumption Expenditure","description":"Government Final Consumption Expenditure"},{"indicator_code":12,"name":"Change in Stock","description":"Change in Stock"},{"indicator_code":13,"name":"Valuables","description":"Valuables"},{"indicator_code":14,"name":"Export of Goods and Services","description":"Export of Goods and Services"},{"indicator_code":15,"name":"Import of Goods and Services","description":"Import of Goods and Services"},{"indicator_code":16,"name":"Primary Income Receivable Net From Row","description":"Primary Income Receivable Net From Row"},{"indicator_code":17,"name":"Gross National Income","description":"Gross National Income"},{"indicator_code":18,"name":"Other Current Transfers Net From Row","description":"Other Current Transfers Net From Row"},{"indicator_code":19,"name":"Gross National Disposable Income","description":"Gross National Disposable Income"},{"indicator_code":20,"name":"Gross Saving","description":"Gross Saving"},{"indicator_code":21,"name":"GVA Growth Rate","description":"GVA Growth Rate"},{"indicator_code":22,"name":"GDP Growth Rate","description":"GDP Growth Rate"},{"indicator_code":23,"name":"Gross State Domestic Product","description":"Gross State Domestic Product"},{"indicator_code":24,"name":"Net State Domestic Product","description":"Net State Domestic Product"},{"indicator_code":25,"name":"Per Capita Net State Domestic Product","description":"Per Capita Net State Domestic Product"},{"indicator_code":26,"name":"GSDP Growth Rate","description":"Gross State Domestic Product Growth Rate"},{"indicator_code":27,"name":"NSDP Growth Rate","description":"Net State Domestic Product Growth Rate"},{"indicator_code":28,"name":"PCNSDP Growth Rate","description":"Per Capita Net State Domestic Product Growth Rate"},{"indicator_code":29,"name":"Gross State Value Added","description":"Gross State Value Added"},{"indicator_code":30,"name":"Net State Value Added","description":"Net State Value Added"},{"indicator_code":31,"name":"Per Capita GSDP (Rs.)","description":"Per Capita Gross State Domestic Product (Rs.)"},{"indicator_code":33,"name":"Taxes on Products","description":"Taxes on Products"},{"indicator_code":34,"name":"Subsidies on Products","description":"Subsidies on Products"}];
+const MOSPI_API = "https://api.mospi.gov.in";
+// Inside a claude.ai artifact the page is sandboxed (no outside fetches; saves go through claude.use).
+const IN_ARTIFACT = !!(window.claude && typeof window.claude.use === "function");
+const SOURCES = [
+  { label: "Publications & Reports", url: "https://www.mospi.gov.in/publications-reports", note: "All MoSPI reports, by category" },
+  { label: "National Accounts publications", url: "https://www.mospi.gov.in/publications-reports/innerpage/2861", note: "Press notes, NAS, GDP estimates" },
+  { label: "eSankhyiki data portal", url: "https://esankhyiki.mospi.gov.in/", note: "MoSPI's interactive data portal, with NAS tables to download" },
+];
+
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const seriesColor = (i) => css(`--s${(i % 8) + 1}`);
+const MAX_SERIES = 8;
+function toNum(v) {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string") return null;
+  const s = v.replace(/,/g, "").trim();
+  return /^-?\d+(\.\d+)?$/.test(s) ? parseFloat(s) : null;
+}
+const fmt = (v, d = 2) => (v == null ? "–" : Number(v).toLocaleString("en-IN", { maximumFractionDigits: d, minimumFractionDigits: Math.min(d, 1) }));
+const isPeriod = (s) => /^\s*(\d{4}(-\d{2,4})?|Q[1-4]\b.*|.*\bQ[1-4]\b.*)\s*$/i.test(String(s ?? ""));
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2600); }
+
+/* ---------- theme ---------- */
+const charts = {};
+(function () {
+  let saved = null;
+  try { saved = localStorage.getItem("nad-theme"); } catch (_) { /* storage unavailable */ }
+  if (saved) document.documentElement.dataset.theme = saved;
+  $("#themeToggle").addEventListener("click", () => {
+    const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("nad-theme", next); } catch (_) { /* ignore */ }
+    Object.values(charts).forEach((c) => c && c.rerender && c.rerender());
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => Object.values(charts).forEach((c) => c && c.rerender && c.rerender()));
+})();
+
+/* ---------- routing ---------- */
+const VIEWS = IN_ARTIFACT ? ["overview", "reports", "definitions", "import"] : ["overview", "live", "reports", "definitions", "import"];
+function route() {
+  const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
+  VIEWS.forEach((id) => ($("#" + id).hidden = id !== v));
+  $$("nav.tabs a").forEach((a) => (a.dataset.view === v ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+  Object.values(charts).forEach((c) => c && c.resize && c.resize());
+}
+addEventListener("hashchange", route);
+
+/* ---------- Excel export (SheetJS + downloads capability) ---------- */
+let downloadsP = null;
+function getDownloads() { if (!downloadsP) downloadsP = IN_ARTIFACT ? claude.use("downloads") : Promise.resolve(null); return downloadsP; }
+function sheetFromSpec(spec) {
+  const aoa = [];
+  if (spec.title) aoa.push([spec.title]);
+  (spec.notes || []).forEach((n) => aoa.push([n]));
+  if (aoa.length) aoa.push([]);
+  const headerRow = aoa.length;
+  aoa.push(spec.columns);
+  spec.rows.forEach((r) => aoa.push(r.map((v) => { const n = toNum(v); return n != null && typeof v === "string" && !isPeriod(v) ? n : v ?? ""; })));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = spec.columns.map((c, j) => ({ wch: Math.min(60, Math.max(10, String(c).length + 2, ...spec.rows.slice(0, 200).map((r) => String(r[j] ?? "").length + 2))) }));
+  for (let r = headerRow + 1; r < aoa.length; r++) {
+    aoa[r].forEach((v, c) => { if (typeof v === "string" && /^https?:\/\//.test(v)) { const ref = XLSX.utils.encode_cell({ r, c }); ws[ref].l = { Target: v }; } });
+  }
+  ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: headerRow, c: 0 }, e: { r: aoa.length - 1, c: Math.max(0, spec.columns.length - 1) } }) };
+  return ws;
+}
+async function exportExcel(btn, name, sheets) {
+  const dl = await getDownloads();
+  if (IN_ARTIFACT && !dl) { toast("Saving files isn't available in this view. Open the page in claude.ai to export."); return; }
+  btn.disabled = true;
+  try {
+    const wb = XLSX.utils.book_new();
+    const used = new Set();
+    sheets.forEach((s) => {
+      let n = String(s.name || "Sheet").replace(/[\[\]*?/\\:]/g, " ").slice(0, 31).trim() || "Sheet", i = 2;
+      while (used.has(n.toLowerCase())) n = n.slice(0, 27) + ` (${i++})`;
+      used.add(n.toLowerCase());
+      XLSX.utils.book_append_sheet(wb, sheetFromSpec(s), n);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Exported from National Accounts Dashboard"], [`Generated: ${new Date().toLocaleString("en-IN")}`], ["Primary source: Ministry of Statistics and Programme Implementation (MoSPI), Government of India - www.mospi.gov.in"]]), "About");
+    const filename = `${name}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    if (dl) {
+      await dl.save({ filename, data: XLSX.write(wb, { bookType: "xlsx", type: "array" }) });
+      toast("Excel file saved");
+    } else {
+      XLSX.writeFile(wb, filename);  // ordinary browser download (GitHub Pages etc.)
+    }
+  } catch (e) {
+    if (e && e.code === "declined") return;
+    if (e && e.code === "rate_limited") toast("A save prompt is already open. Finish it, then try again.");
+    else if (e && ["unavailable", "not_granted", "capability_disabled", "capability_removed", "extension_not_enabled"].includes(e.code)) toast("Saving files isn't available in this view.");
+    else toast(`Export failed: ${e && e.message ? e.message : e}`);
+  } finally { btn.disabled = false; }
+}
+
+/* ---------- table ---------- */
+function renderTable(container, columns, rows, { countEl, searchEl } = {}) {
+  let sortCol = -1, dir = 1, q = "";
+  const numCol = columns.map((_, j) => rows.some((r) => toNum(r[j]) != null) && rows.filter((r) => r[j] != null && r[j] !== "").every((r) => toNum(r[j]) != null));
+  function draw() {
+    let view = q ? rows.filter((r) => r.some((v) => String(v ?? "").toLowerCase().includes(q))) : rows;
+    if (sortCol >= 0) view = [...view].sort((a, b) => { const x = toNum(a[sortCol]), y = toNum(b[sortCol]); return (x != null && y != null ? x - y : String(a[sortCol] ?? "").localeCompare(String(b[sortCol] ?? ""))) * dir; });
+    const shown = view.slice(0, 800);
+    container.innerHTML = `<table class="data"><thead><tr>${columns.map((c, j) => `<th data-j="${j}" scope="col">${esc(c)}${sortCol === j ? (dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead><tbody>${shown.map((r) => `<tr>${columns.map((_, j) => numCol[j] && toNum(r[j]) != null ? `<td class="num">${esc(fmt(toNum(r[j])))}</td>` : `<td>${esc(r[j])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    if (countEl) countEl.textContent = `${view.length.toLocaleString()} row(s)${view.length > shown.length ? `, showing the first ${shown.length}; the export includes all` : ""}`;
+    $$("th", container).forEach((th) => th.addEventListener("click", () => { const j = +th.dataset.j; dir = sortCol === j ? -dir : 1; sortCol = j; draw(); }));
+  }
+  if (searchEl) { searchEl.value = ""; searchEl.oninput = () => { q = searchEl.value.toLowerCase().trim(); draw(); }; }
+  draw();
+}
+
+/* ---------- charts ---------- */
+function drawChart(key, canvas, { type = "line", labels, datasets, unit = "", legendEl }) {
+  const render = () => {
+    if (charts[key]) charts[key].destroy();
+    const ink = css("--text-2"), grid = css("--grid");
+    const ds = datasets.map((d, i) => {
+      const color = seriesColor(d.colorIndex ?? i);
+      return type === "bar"
+        ? { ...d, backgroundColor: d.data.map((v) => (v != null && v < 0 ? css("--s8") : color)), borderRadius: 4, borderSkipped: "start", maxBarThickness: 28 }
+        : { ...d, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: labels.length > 30 ? 0 : 3, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+    const c = new Chart(canvas, {
+      type, data: { labels, datasets: ds },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: css("--surface"), titleColor: css("--text"), bodyColor: css("--text-2"), borderColor: css("--border"), borderWidth: 1, padding: 10, boxPadding: 4,
+            callbacks: { label: (x) => ` ${x.dataset.label}: ${fmt(x.parsed.y)}${unit ? " " + unit : ""}` } },
+        },
+        scales: {
+          x: { ticks: { color: ink, maxRotation: 0, autoSkip: true }, grid: { display: false }, border: { color: grid } },
+          y: { ticks: { color: ink, callback: (v) => fmt(v, 1) }, grid: { color: grid }, border: { display: false }, beginAtZero: type === "bar" },
+        },
+      },
+    });
+    c.rerender = render;
+    charts[key] = c;
+    if (legendEl) legendEl.innerHTML = datasets.length > 1 ? datasets.map((d, i) => `<span><i style="background:${seriesColor(d.colorIndex ?? i)}"></i>${esc(d.label)}</span>`).join("") : "";
+  };
+  render();
+}
+
+/* ---------- overview ---------- */
+function initOverview() {
+  const S = SNAPSHOT;
+  $("#snapBanner").textContent = "Reference snapshot (2011-12 base series), entered from MoSPI releases up to the Provisional Estimates of May 2025 and not checked against the source. MoSPI has since moved to a 2022-23 base. For current official figures, see Reports.";
+  const years = S.rows.map((r) => r[0]), real = S.rows.map((r) => r[1]), nom = S.rows.map((r) => r[2]);
+  const g = real.map((v, i) => (i ? +((v / real[i - 1] - 1) * 100).toFixed(1) : null));
+  const ng = nom.map((v, i) => (i ? +((v / nom[i - 1] - 1) * 100).toFixed(1) : null));
+  const defl = nom.map((v, i) => +((v / real[i]) * 100).toFixed(1));
+  const n = years.length - 1;
+  $("#kpis").innerHTML = [
+    [`Real GDP growth, ${years[n]}`, `${fmt(g[n], 1)}%`, `${years[n - 1]}: ${fmt(g[n - 1], 1)}%`],
+    [`Nominal GDP, ${years[n]}`, `₹${fmt(nom[n])}`, `lakh crore · growth ${fmt(ng[n], 1)}%`],
+    [`Real GDP, ${years[n]}`, `₹${fmt(real[n])}`, "lakh crore at 2011-12 prices"],
+    [`GDP deflator, ${years[n]}`, fmt(defl[n], 1), "2011-12 = 100"],
+  ].map(([l, v, m]) => `<div class="card kpi"><div class="label">${esc(l)}</div><div class="value">${esc(v)}</div><div class="meta">${esc(m)}</div></div>`).join("");
+  drawChart("lvl", $("#lvlChart"), { labels: years, unit: "lakh crore", legendEl: $("#lvlLegend"), datasets: [{ label: "Nominal (current prices)", data: nom }, { label: "Real (2011-12 prices)", data: real }] });
+  drawChart("growth", $("#growthChart"), { type: "bar", labels: years.slice(1), unit: "%", datasets: [{ label: "Real GDP growth", data: g.slice(1) }] });
+  const cols = ["Year", "Real GDP (₹ lakh crore)", "Nominal GDP (₹ lakh crore)", "Real growth %", "Nominal growth %", "GDP deflator (2011-12=100)"];
+  const rows = years.map((y, i) => [y, real[i], nom[i], g[i], ng[i], defl[i]]);
+  renderTable($("#ovTable"), cols, rows);
+  $("#ovExport").onclick = (e) => exportExcel(e.currentTarget, "gdp-overview", [{ name: "GDP overview", title: S.title, notes: [S.status, "Unit: Rs. lakh crore"], columns: cols, rows }]);
+}
+
+/* ---------- reports ---------- */
+function initReports() {
+  $("#sourceLinks").innerHTML = SOURCES.map((s) => `<a class="linkcard" href="${esc(s.url)}" target="_blank" rel="noopener"><strong>${esc(s.label)} ↗</strong><span class="note">${esc(s.note)}</span><span class="u">${esc(s.url.replace("https://", ""))}</span></a>`).join("");
+  $("#releaseList").innerHTML = SERIES.map((s) => `<div class="release"><div class="when">${esc(s.frequency)}</div><div><strong>${esc(s.name)}</strong><div class="m">${esc(s.timing)}</div><div>${esc(s.description)}</div></div></div>`).join("");
+  $("#relExport").onclick = (e) => exportExcel(e.currentTarget, "nas-release-cycle", [
+    { name: "Release cycle", title: "National Accounts release cycle", columns: ["Release", "Frequency", "Timing", "Description"], rows: SERIES.map((s) => [s.name, s.frequency, s.timing, s.description]) },
+    { name: "Sources", columns: ["Page", "URL", "What's there"], rows: SOURCES.map((s) => [s.label, s.url, s.note]) },
+  ]);
+}
+
+/* ---------- definitions ---------- */
+let gCat = "";
+function initDefinitions() {
+  const cats = [...new Set(GLOSSARY.map((g) => g.category))];
+  $("#gCats").innerHTML = [`<button class="chip" type="button" aria-pressed="true" data-c="">All</button>`, ...cats.map((c) => `<button class="chip" type="button" aria-pressed="false" data-c="${esc(c)}">${esc(c)}</button>`)].join("");
+  $$("#gCats .chip").forEach((b) => b.addEventListener("click", () => { gCat = b.dataset.c; $$("#gCats .chip").forEach((x) => x.setAttribute("aria-pressed", x === b)); drawGloss(); }));
+  $("#gSearch").addEventListener("input", drawGloss);
+  $("#gExport").onclick = (e) => exportExcel(e.currentTarget, "national-accounts-definitions", [{ name: "Definitions", title: "National Accounts Statistics: key definitions", columns: ["Category", "Term", "Abbreviation", "Definition", "Formula", "Note"], rows: glossFiltered().map((g) => [g.category, g.term, g.abbr, g.definition, g.formula || "", g.note || ""]) }]);
+  drawGloss();
+}
+function glossFiltered() {
+  const q = $("#gSearch").value.toLowerCase().trim();
+  return GLOSSARY.filter((g) => (!gCat || g.category === gCat) && (!q || [g.term, g.abbr, g.definition, g.formula].join(" ").toLowerCase().includes(q)));
+}
+function drawGloss() {
+  const list = glossFiltered();
+  $("#gCount").textContent = `${list.length} of ${GLOSSARY.length} terms`;
+  $("#gList").innerHTML = list.map((g) => `<div class="card"><h3>${esc(g.term)}${g.abbr ? ` <span class="abbr">${esc(g.abbr)}</span>` : ""} <span class="tag">${esc(g.category)}</span></h3><p>${esc(g.definition)}</p>${g.formula ? `<div class="formula">${esc(g.formula)}</div>` : ""}${g.note ? `<div class="note">${esc(g.note)}</div>` : ""}</div>`).join("") || '<div class="empty">No terms match. Try a shorter search.</div>';
+}
+
+/* ---------- import ---------- */
+let iSheets = [], iCur = 0;
+function parseWorkbook(buf) {
+  const wb = XLSX.read(buf, { type: "array", cellDates: true });
+  return wb.SheetNames.map((name) => {
+    let rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null, blankrows: false })
+      .filter((r) => r.some((v) => v !== null && v !== ""));
+    if (!rows.length) return null;
+    let width = Math.max(...rows.map((r) => r.length));
+    while (width > 1 && rows.every((r) => r[width - 1] == null || r[width - 1] === "")) width--;
+    rows = rows.map((r) => Array.from({ length: width }, (_, j) => { const v = r[j]; return v instanceof Date ? v.toISOString().slice(0, 10) : v; }));
+    let h = rows.slice(0, 25).findIndex((r) => r.filter((v) => v !== null && v !== "").length >= Math.max(2, Math.floor(width / 2)));
+    if (h < 0) h = 0;
+    return {
+      name, notes: rows.slice(0, h).map((r) => r.filter((v) => v !== null && v !== "").join(" ")),
+      columns: rows[h].map((v, j) => (v === null || v === "" ? `Col ${j + 1}` : String(v).trim())),
+      rows: rows.slice(h + 1, h + 1 + 5000),
+    };
+  }).filter(Boolean);
+}
+async function openFile(file) {
+  $("#iMsg").innerHTML = "";
+  try {
+    iSheets = parseWorkbook(await file.arrayBuffer());
+  } catch (e) {
+    $("#iMsg").innerHTML = `<div class="banner error">Couldn't read ${esc(file.name)}. Choose an .xlsx, .xls or .csv file.</div>`;
+    return;
+  }
+  if (!iSheets.length) { $("#iMsg").innerHTML = `<div class="banner">${esc(file.name)} has no data in it.</div>`; return; }
+  iSheets.file = file.name.replace(/\.[^.]+$/, "");
+  $("#iTabs").innerHTML = iSheets.map((s, i) => `<button class="chip" type="button" data-i="${i}" aria-pressed="${i === 0}">${esc(s.name)}</button>`).join("");
+  $$("#iTabs .chip").forEach((b) => b.addEventListener("click", () => { $$("#iTabs .chip").forEach((x) => x.setAttribute("aria-pressed", x === b)); showSheet(+b.dataset.i); }));
+  showSheet(0);
+}
+function showSheet(i) {
+  iCur = i;
+  const s = iSheets[i];
+  $("#iNotes").textContent = s.notes.join(" · ");
+  $("#iTableCard").hidden = false;
+  renderTable($("#iTable"), s.columns, s.rows, { countEl: $("#iCount"), searchEl: $("#iSearch") });
+  chartBuilder("i", s.columns, s.rows);
+}
+function chartBuilder(p, columns, rows) {
+  const k = (n) => $(`[data-k="${n}"]`, $(`#${p}Controls`));
+  const ctl = $(`#${p}Controls`);
+  const numCols = columns.map((_, j) => j).filter((j) => rows.some((r) => toNum(r[j]) != null) && rows.filter((r) => r[j] != null && r[j] !== "").every((r) => toNum(r[j]) != null));
+  $(`#${p}ChartCard`).hidden = !numCols.length;
+  if (!numCols.length) return;
+  const periodCols = numCols.filter((j) => isPeriod(columns[j]));
+  const wide = periodCols.length >= 3;
+  const xG = columns.findIndex((c) => /year|quarter|period|date/i.test(c));
+  const yG = numCols.find((j) => j !== xG);
+  const cat = columns.map((_, j) => j).filter((j) => !numCols.includes(j) && j !== xG);
+  const distinct = (j) => new Set(rows.map((r) => r[j])).size;
+  const gG = cat.filter((j) => distinct(j) > 1 && distinct(j) <= 40).sort((a, b) => distinct(a) - distinct(b))[0] ?? -1;
+  const labG = columns.findIndex((_, j) => !numCols.includes(j));
+  const opt = (j, sel) => `<option value="${j}" ${j === sel ? "selected" : ""}>${esc(columns[j])}</option>`;
+  ctl.innerHTML = `
+    <label class="field">Layout<select data-k="mode"><option value="long" ${wide ? "" : "selected"}>One row per observation</option><option value="wide" ${wide ? "selected" : ""}>Rows are series, columns are periods</option></select></label>
+    <label class="field" data-long>X axis<select data-k="x">${columns.map((_, j) => opt(j, xG)).join("")}</select></label>
+    <label class="field" data-long>Value<select data-k="y">${numCols.map((j) => opt(j, yG)).join("")}</select></label>
+    <label class="field" data-long>Series<select data-k="g"><option value="-1">(none)</option>${cat.map((j) => opt(j, gG)).join("")}</select></label>
+    <label class="field" data-wide>Series label<select data-k="lab">${columns.map((_, j) => opt(j, labG)).join("")}</select></label>
+    <label class="field" data-wide>Rows to plot<select data-k="rows" multiple size="5"></select></label>
+    <label class="field">Chart<select data-k="type"><option value="line">Line</option><option value="bar">Bar</option></select></label>`;
+  const fillRows = () => { const lab = +k("lab").value; k("rows").innerHTML = rows.map((r, i) => `<option value="${i}" ${i < 3 ? "selected" : ""}>${esc(String(r[lab] ?? `Row ${i + 1}`).slice(0, 70))}</option>`).join(""); };
+  fillRows();
+  function redraw() {
+    const isWide = k("mode").value === "wide";
+    $$("[data-long]", ctl).forEach((e) => (e.hidden = isWide));
+    $$("[data-wide]", ctl).forEach((e) => (e.hidden = !isWide));
+    let labels, datasets, note = "";
+    if (isWide) {
+      const xs = periodCols.length ? periodCols : numCols;
+      labels = xs.map((j) => columns[j]);
+      const picked = [...k("rows").selectedOptions].map((o) => +o.value), lab = +k("lab").value;
+      datasets = picked.slice(0, MAX_SERIES).map((i, k) => ({ label: String(rows[i][lab] ?? `Row ${i + 1}`), data: xs.map((j) => toNum(rows[i][j])), colorIndex: k }));
+      if (picked.length > MAX_SERIES) note = `Showing the first ${MAX_SERIES} selected rows.`;
+    } else {
+      const x = +k("x").value, y = +k("y").value, g = +k("g").value;
+      labels = [...new Set(rows.map((r) => String(r[x] ?? "")))];
+      const groups = new Map();
+      rows.forEach((r) => {
+        const k = g >= 0 ? String(r[g] ?? "") : columns[y], v = toNum(r[y]);
+        if (!groups.has(k)) groups.set(k, new Map());
+        if (v != null) groups.get(k).set(String(r[x] ?? ""), (groups.get(k).get(String(r[x] ?? "")) ?? 0) + v);
+      });
+      const keys = [...groups.keys()];
+      if (keys.length > MAX_SERIES) note = `${keys.length} series; showing the first ${MAX_SERIES}. Pick another Series column to narrow it.`;
+      datasets = keys.slice(0, MAX_SERIES).map((k, i) => ({ label: k, data: labels.map((l) => groups.get(k).get(l) ?? null), colorIndex: i }));
+    }
+    drawChart(p, $(`#${p}Chart`), { type: k("type").value, labels, datasets, legendEl: $(`#${p}Legend`) });
+    if (note) $(`#${p}Legend`).insertAdjacentHTML("beforeend", `<span class="note">${esc(note)}</span>`);
+  }
+  ctl.onchange = (e) => { if (e.target.dataset.k === "lab") fillRows(); redraw(); };
+  redraw();
+}
+function initImport() {
+  $("#iFile").addEventListener("change", (e) => e.target.files[0] && openFile(e.target.files[0]));
+  const drop = $("#drop");
+  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, () => drop.classList.remove("over")));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) openFile(f); });
+  $("#iExport").onclick = (e) => iSheets.length && exportExcel(e.currentTarget, iSheets.file || "imported", iSheets);
+}
+
+/* ---------- live data (MoSPI API, standalone hosting only) ---------- */
+function extractRecords(x) {
+  if (Array.isArray(x)) return x.length && x.every((o) => o && typeof o === "object" && !Array.isArray(o)) ? x : [];
+  if (x && typeof x === "object") {
+    for (const key of ["data", "records", "result", "rows", "Data"]) if (key in x) { const f = extractRecords(x[key]); if (f.length) return f; }
+    for (const v of Object.values(x)) if (v && typeof v === "object") { const f = extractRecords(v); if (f.length) return f; }
+  }
+  return [];
+}
+function glossaryFor(name) {
+  const n = String(name || "").toLowerCase();
+  return GLOSSARY.find((g) => g.term.toLowerCase() === n) || GLOSSARY.find((g) => n.includes(g.term.toLowerCase()) || g.term.toLowerCase().includes(n));
+}
+let lLast = null;
+function initLive() {
+  $("#liveTab").hidden = false;
+  const sel = $("#lInd");
+  const opt = (d) => `<option value="${d.indicator_code}">${d.indicator_code}. ${esc(d.name)}</option>`;
+  sel.innerHTML = `<optgroup label="National (1–22)">${INDICATORS.filter((d) => d.indicator_code <= 22).map(opt).join("")}</optgroup><optgroup label="State (23–34)">${INDICATORS.filter((d) => d.indicator_code > 22).map(opt).join("")}</optgroup>`;
+  sel.value = "5";
+  const sync = () => {
+    const code = +sel.value, base = $("#lBase").value;
+    $("#lStateWrap").hidden = code < 23;
+    $("#lSeries").options[1].disabled = base === "2022-23";
+    if (base === "2022-23") $("#lSeries").value = "Current";
+    const qOK = code < 23 && $("#lSeries").value === "Current";
+    $("#lFreq").options[1].disabled = !qOK;
+    if (!qOK) $("#lFreq").value = "Annually";
+    const g = glossaryFor(INDICATORS.find((d) => d.indicator_code === code)?.name);
+    $("#lDef").textContent = g ? `${g.term}${g.abbr ? ` (${g.abbr})` : ""}: ${g.definition}` : "";
+  };
+  ["#lInd", "#lBase", "#lSeries"].forEach((id) => $(id).addEventListener("change", sync));
+  sync();
+  $("#lFetch").onclick = fetchLive;
+  $("#lExport").onclick = (e) => {
+    if (!lLast) return;
+    const g = glossaryFor(lLast.name);
+    const sheets = [{ name: lLast.name, title: `${lLast.name}: MoSPI National Accounts`, notes: [`Query: ${lLast.query}`, `Source: ${MOSPI_API}`], columns: lLast.columns, rows: lLast.rows }];
+    if (g) sheets.push({ name: "Definition", columns: ["Term", "Abbreviation", "Definition", "Formula", "Note"], rows: [[g.term, g.abbr, g.definition, g.formula || "", g.note || ""]] });
+    exportExcel(e.currentTarget, `nas-${lLast.name.toLowerCase().replace(/\W+/g, "-")}`, sheets);
+  };
+}
+async function fetchLive() {
+  const btn = $("#lFetch"), msg = $("#lMsg");
+  const params = { base_year: $("#lBase").value, series: $("#lSeries").value, frequency_code: $("#lFreq").value, indicator_code: $("#lInd").value, Format: "JSON" };
+  if ($("#lYear").value.trim()) params.year = $("#lYear").value.replace(/\s/g, "");
+  if (!$("#lStateWrap").hidden && $("#lState").value.trim()) params.state_code = $("#lState").value.replace(/\s/g, "");
+  btn.disabled = true;
+  msg.innerHTML = `<div class="banner">Fetching from MoSPI…</div>`;
+  const PAGE = 500, recs = [];
+  try {
+    for (let page = 1; page <= 20; page++) {
+      const qs = new URLSearchParams({ ...params, limit: PAGE, page });
+      const resp = await fetch(`${MOSPI_API}/api/nas/getNASData?${qs}`, { headers: { Accept: "application/json" } });
+      if (!resp.ok) throw new Error(`MoSPI answered HTTP ${resp.status}`);
+      const body = await resp.json();
+      if (body && body.statusCode === false) { if (page === 1) throw new Error(body.message || "MoSPI rejected the query"); break; }
+      const batch = extractRecords(body);
+      recs.push(...batch);
+      if (batch.length < PAGE) break;
+    }
+  } catch (e) {
+    const blocked = e instanceof TypeError;
+    msg.innerHTML = `<div class="banner error">${blocked
+      ? "Your browser couldn't get data from MoSPI's API. MoSPI may not allow requests from other websites, or the API may be down. Instead, download the Excel file from the <a href=\"#reports\">Reports</a> links and open it in <a href=\"#import\">Import Excel</a>."
+      : esc(e.message) + ". Try another base year, series or frequency."}</div>`;
+    btn.disabled = false;
+    return;
+  }
+  btn.disabled = false;
+  if (!recs.length) { msg.innerHTML = `<div class="banner">MoSPI returned no rows for this query. Try another base year, series or frequency.</div>`; $("#lChartCard").hidden = $("#lTableCard").hidden = true; return; }
+  msg.innerHTML = "";
+  const columns = [...new Set(recs.flatMap((rec) => Object.keys(rec)))];
+  const rows = recs.map((rec) => columns.map((c) => (rec[c] !== null && typeof rec[c] === "object" ? JSON.stringify(rec[c]) : rec[c])));
+  const ind = INDICATORS.find((d) => String(d.indicator_code) === params.indicator_code);
+  lLast = { name: ind ? ind.name : "NAS data", columns, rows, query: Object.entries(params).map(([k, v]) => `${k}=${v}`).join(", ") };
+  $("#lTableCard").hidden = false;
+  renderTable($("#lTable"), columns, rows, { countEl: $("#lCount"), searchEl: $("#lSearch") });
+  chartBuilder("l", columns, rows);
+}
+
+route();
+initOverview(); initReports(); initDefinitions(); initImport();
+if (!IN_ARTIFACT) initLive();
+getDownloads().then((dl) => { if (IN_ARTIFACT && !dl) $$("#ovExport,#relExport,#gExport,#iExport").forEach((b) => (b.title = "Saving files isn't available in this view")); });
+</script>
+
+</body>
+</html>

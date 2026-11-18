@@ -113,6 +113,7 @@ select[multiple] { min-width: min(100%, 260px); }
     <div class="brand"><h1>National Accounts Dashboard</h1><div class="sub">India · MoSPI / NSO statistics</div></div>
     <nav class="tabs" aria-label="Sections">
       <a href="#overview" data-view="overview">Overview</a>
+      <a href="#live" data-view="live" id="liveTab" hidden>Live data</a>
       <a href="#reports" data-view="reports">Reports</a>
       <a href="#definitions" data-view="definitions">Definitions</a>
       <a href="#import" data-view="import">Import Excel</a>
@@ -134,6 +135,38 @@ select[multiple] { min-width: min(100%, 260px); }
     <div class="card">
       <div class="toolbar" style="justify-content:space-between"><h3>Data table</h3><button class="btn" id="ovExport" type="button">Export to Excel</button></div>
       <div class="table-wrap" id="ovTable"></div>
+    </div>
+  </section>
+
+  <!-- LIVE DATA (standalone hosting only) -->
+  <section class="view" id="live" hidden>
+    <h2>Live data from MoSPI</h2>
+    <p class="lede">Queries MoSPI's National Accounts API directly from your browser. Indicators 1–22 are national; 23–34 are state-level and need a state code (37 = All-India). Quarterly data exists only for the 2022-23 base, current series.</p>
+    <div class="card">
+      <div class="toolbar">
+        <label class="field">Indicator<select id="lInd"></select></label>
+        <label class="field">Base year<select id="lBase"><option>2022-23</option><option>2011-12</option></select></label>
+        <label class="field">Series<select id="lSeries"><option>Current</option><option>Back</option></select></label>
+        <label class="field">Frequency<select id="lFreq"><option>Annually</option><option>Quarterly</option></select></label>
+        <label class="field">Year(s)<input type="text" id="lYear" placeholder="2023-24,2024-25"></label>
+        <label class="field" id="lStateWrap" hidden>State code(s)<input type="text" id="lState" placeholder="01–37"></label>
+        <button class="btn primary" id="lFetch" type="button">Fetch data</button>
+      </div>
+      <div class="note" id="lDef"></div>
+      <div id="lMsg"></div>
+    </div>
+    <div class="card" id="lChartCard" hidden>
+      <div class="toolbar" id="lControls"></div>
+      <div class="legend" id="lLegend"></div>
+      <div class="chart-box"><canvas id="lChart" aria-label="Live data chart" role="img"></canvas></div>
+    </div>
+    <div class="card" id="lTableCard" hidden>
+      <div class="toolbar">
+        <input type="search" id="lSearch" placeholder="Filter rows" aria-label="Filter rows">
+        <button class="btn" id="lExport" type="button">Export to Excel</button>
+      </div>
+      <div class="count" id="lCount"></div>
+      <div class="table-wrap" id="lTable"></div>
     </div>
   </section>
 
@@ -198,6 +231,10 @@ select[multiple] { min-width: min(100%, 260px); }
 const GLOSSARY = /*GLOSSARY*/[];
 const SNAPSHOT = /*SNAPSHOT*/{};
 const SERIES = /*SERIES*/[];
+const INDICATORS = /*INDICATORS*/[];
+const MOSPI_API = "https://api.mospi.gov.in";
+// Inside a claude.ai artifact the page is sandboxed (no outside fetches; saves go through claude.use).
+const IN_ARTIFACT = !!(window.claude && typeof window.claude.use === "function");
 const SOURCES = [
   { label: "Publications & Reports", url: "https://www.mospi.gov.in/publications-reports", note: "All MoSPI reports, by category" },
   { label: "National Accounts publications", url: "https://www.mospi.gov.in/publications-reports/innerpage/2861", note: "Press notes, NAS, GDP estimates" },
@@ -237,7 +274,7 @@ const charts = {};
 })();
 
 /* ---------- routing ---------- */
-const VIEWS = ["overview", "reports", "definitions", "import"];
+const VIEWS = IN_ARTIFACT ? ["overview", "reports", "definitions", "import"] : ["overview", "live", "reports", "definitions", "import"];
 function route() {
   const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
   VIEWS.forEach((id) => ($("#" + id).hidden = id !== v));
@@ -248,7 +285,7 @@ addEventListener("hashchange", route);
 
 /* ---------- Excel export (SheetJS + downloads capability) ---------- */
 let downloadsP = null;
-function getDownloads() { if (!downloadsP) downloadsP = window.claude && claude.use ? claude.use("downloads") : Promise.resolve(null); return downloadsP; }
+function getDownloads() { if (!downloadsP) downloadsP = IN_ARTIFACT ? claude.use("downloads") : Promise.resolve(null); return downloadsP; }
 function sheetFromSpec(spec) {
   const aoa = [];
   if (spec.title) aoa.push([spec.title]);
@@ -267,7 +304,7 @@ function sheetFromSpec(spec) {
 }
 async function exportExcel(btn, name, sheets) {
   const dl = await getDownloads();
-  if (!dl) { toast("Saving files isn't available in this view. Open the page in claude.ai to export."); return; }
+  if (IN_ARTIFACT && !dl) { toast("Saving files isn't available in this view. Open the page in claude.ai to export."); return; }
   btn.disabled = true;
   try {
     const wb = XLSX.utils.book_new();
@@ -279,10 +316,13 @@ async function exportExcel(btn, name, sheets) {
       XLSX.utils.book_append_sheet(wb, sheetFromSpec(s), n);
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Exported from National Accounts Dashboard"], [`Generated: ${new Date().toLocaleString("en-IN")}`], ["Primary source: Ministry of Statistics and Programme Implementation (MoSPI), Government of India - www.mospi.gov.in"]]), "About");
-    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const today = new Date().toISOString().slice(0, 10);
-    await dl.save({ filename: `${name}-${today}.xlsx`, data: buf });
-    toast("Excel file saved");
+    const filename = `${name}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    if (dl) {
+      await dl.save({ filename, data: XLSX.write(wb, { bookType: "xlsx", type: "array" }) });
+      toast("Excel file saved");
+    } else {
+      XLSX.writeFile(wb, filename);  // ordinary browser download (GitHub Pages etc.)
+    }
   } catch (e) {
     if (e && e.code === "declined") return;
     if (e && e.code === "rate_limited") toast("A save prompt is already open. Finish it, then try again.");
@@ -434,12 +474,13 @@ function showSheet(i) {
   $("#iNotes").textContent = s.notes.join(" · ");
   $("#iTableCard").hidden = false;
   renderTable($("#iTable"), s.columns, s.rows, { countEl: $("#iCount"), searchEl: $("#iSearch") });
-  chartBuilder(s.columns, s.rows);
+  chartBuilder("i", s.columns, s.rows);
 }
-function chartBuilder(columns, rows) {
-  const ctl = $("#iControls");
+function chartBuilder(p, columns, rows) {
+  const k = (n) => $(`[data-k="${n}"]`, $(`#${p}Controls`));
+  const ctl = $(`#${p}Controls`);
   const numCols = columns.map((_, j) => j).filter((j) => rows.some((r) => toNum(r[j]) != null) && rows.filter((r) => r[j] != null && r[j] !== "").every((r) => toNum(r[j]) != null));
-  $("#iChartCard").hidden = !numCols.length;
+  $(`#${p}ChartCard`).hidden = !numCols.length;
   if (!numCols.length) return;
   const periodCols = numCols.filter((j) => isPeriod(columns[j]));
   const wide = periodCols.length >= 3;
@@ -451,28 +492,28 @@ function chartBuilder(columns, rows) {
   const labG = columns.findIndex((_, j) => !numCols.includes(j));
   const opt = (j, sel) => `<option value="${j}" ${j === sel ? "selected" : ""}>${esc(columns[j])}</option>`;
   ctl.innerHTML = `
-    <label class="field">Layout<select id="cMode"><option value="long" ${wide ? "" : "selected"}>One row per observation</option><option value="wide" ${wide ? "selected" : ""}>Rows are series, columns are periods</option></select></label>
-    <label class="field" data-long>X axis<select id="cX">${columns.map((_, j) => opt(j, xG)).join("")}</select></label>
-    <label class="field" data-long>Value<select id="cY">${numCols.map((j) => opt(j, yG)).join("")}</select></label>
-    <label class="field" data-long>Series<select id="cG"><option value="-1">(none)</option>${cat.map((j) => opt(j, gG)).join("")}</select></label>
-    <label class="field" data-wide>Series label<select id="cLab">${columns.map((_, j) => opt(j, labG)).join("")}</select></label>
-    <label class="field" data-wide>Rows to plot<select id="cRows" multiple size="5"></select></label>
-    <label class="field">Chart<select id="cType"><option value="line">Line</option><option value="bar">Bar</option></select></label>`;
-  const fillRows = () => { const lab = +$("#cLab").value; $("#cRows").innerHTML = rows.map((r, i) => `<option value="${i}" ${i < 3 ? "selected" : ""}>${esc(String(r[lab] ?? `Row ${i + 1}`).slice(0, 70))}</option>`).join(""); };
+    <label class="field">Layout<select data-k="mode"><option value="long" ${wide ? "" : "selected"}>One row per observation</option><option value="wide" ${wide ? "selected" : ""}>Rows are series, columns are periods</option></select></label>
+    <label class="field" data-long>X axis<select data-k="x">${columns.map((_, j) => opt(j, xG)).join("")}</select></label>
+    <label class="field" data-long>Value<select data-k="y">${numCols.map((j) => opt(j, yG)).join("")}</select></label>
+    <label class="field" data-long>Series<select data-k="g"><option value="-1">(none)</option>${cat.map((j) => opt(j, gG)).join("")}</select></label>
+    <label class="field" data-wide>Series label<select data-k="lab">${columns.map((_, j) => opt(j, labG)).join("")}</select></label>
+    <label class="field" data-wide>Rows to plot<select data-k="rows" multiple size="5"></select></label>
+    <label class="field">Chart<select data-k="type"><option value="line">Line</option><option value="bar">Bar</option></select></label>`;
+  const fillRows = () => { const lab = +k("lab").value; k("rows").innerHTML = rows.map((r, i) => `<option value="${i}" ${i < 3 ? "selected" : ""}>${esc(String(r[lab] ?? `Row ${i + 1}`).slice(0, 70))}</option>`).join(""); };
   fillRows();
   function redraw() {
-    const isWide = $("#cMode").value === "wide";
+    const isWide = k("mode").value === "wide";
     $$("[data-long]", ctl).forEach((e) => (e.hidden = isWide));
     $$("[data-wide]", ctl).forEach((e) => (e.hidden = !isWide));
     let labels, datasets, note = "";
     if (isWide) {
       const xs = periodCols.length ? periodCols : numCols;
       labels = xs.map((j) => columns[j]);
-      const picked = [...$("#cRows").selectedOptions].map((o) => +o.value), lab = +$("#cLab").value;
+      const picked = [...k("rows").selectedOptions].map((o) => +o.value), lab = +k("lab").value;
       datasets = picked.slice(0, MAX_SERIES).map((i, k) => ({ label: String(rows[i][lab] ?? `Row ${i + 1}`), data: xs.map((j) => toNum(rows[i][j])), colorIndex: k }));
       if (picked.length > MAX_SERIES) note = `Showing the first ${MAX_SERIES} selected rows.`;
     } else {
-      const x = +$("#cX").value, y = +$("#cY").value, g = +$("#cG").value;
+      const x = +k("x").value, y = +k("y").value, g = +k("g").value;
       labels = [...new Set(rows.map((r) => String(r[x] ?? "")))];
       const groups = new Map();
       rows.forEach((r) => {
@@ -484,10 +525,10 @@ function chartBuilder(columns, rows) {
       if (keys.length > MAX_SERIES) note = `${keys.length} series; showing the first ${MAX_SERIES}. Pick another Series column to narrow it.`;
       datasets = keys.slice(0, MAX_SERIES).map((k, i) => ({ label: k, data: labels.map((l) => groups.get(k).get(l) ?? null), colorIndex: i }));
     }
-    drawChart("import", $("#iChart"), { type: $("#cType").value, labels, datasets, legendEl: $("#iLegend") });
-    if (note) $("#iLegend").insertAdjacentHTML("beforeend", `<span class="note">${esc(note)}</span>`);
+    drawChart(p, $(`#${p}Chart`), { type: k("type").value, labels, datasets, legendEl: $(`#${p}Legend`) });
+    if (note) $(`#${p}Legend`).insertAdjacentHTML("beforeend", `<span class="note">${esc(note)}</span>`);
   }
-  ctl.onchange = (e) => { if (e.target.id === "cLab") fillRows(); redraw(); };
+  ctl.onchange = (e) => { if (e.target.dataset.k === "lab") fillRows(); redraw(); };
   redraw();
 }
 function initImport() {
@@ -499,7 +540,89 @@ function initImport() {
   $("#iExport").onclick = (e) => iSheets.length && exportExcel(e.currentTarget, iSheets.file || "imported", iSheets);
 }
 
+/* ---------- live data (MoSPI API, standalone hosting only) ---------- */
+function extractRecords(x) {
+  if (Array.isArray(x)) return x.length && x.every((o) => o && typeof o === "object" && !Array.isArray(o)) ? x : [];
+  if (x && typeof x === "object") {
+    for (const key of ["data", "records", "result", "rows", "Data"]) if (key in x) { const f = extractRecords(x[key]); if (f.length) return f; }
+    for (const v of Object.values(x)) if (v && typeof v === "object") { const f = extractRecords(v); if (f.length) return f; }
+  }
+  return [];
+}
+function glossaryFor(name) {
+  const n = String(name || "").toLowerCase();
+  return GLOSSARY.find((g) => g.term.toLowerCase() === n) || GLOSSARY.find((g) => n.includes(g.term.toLowerCase()) || g.term.toLowerCase().includes(n));
+}
+let lLast = null;
+function initLive() {
+  $("#liveTab").hidden = false;
+  const sel = $("#lInd");
+  const opt = (d) => `<option value="${d.indicator_code}">${d.indicator_code}. ${esc(d.name)}</option>`;
+  sel.innerHTML = `<optgroup label="National (1–22)">${INDICATORS.filter((d) => d.indicator_code <= 22).map(opt).join("")}</optgroup><optgroup label="State (23–34)">${INDICATORS.filter((d) => d.indicator_code > 22).map(opt).join("")}</optgroup>`;
+  sel.value = "5";
+  const sync = () => {
+    const code = +sel.value, base = $("#lBase").value;
+    $("#lStateWrap").hidden = code < 23;
+    $("#lSeries").options[1].disabled = base === "2022-23";
+    if (base === "2022-23") $("#lSeries").value = "Current";
+    const qOK = code < 23 && $("#lSeries").value === "Current";
+    $("#lFreq").options[1].disabled = !qOK;
+    if (!qOK) $("#lFreq").value = "Annually";
+    const g = glossaryFor(INDICATORS.find((d) => d.indicator_code === code)?.name);
+    $("#lDef").textContent = g ? `${g.term}${g.abbr ? ` (${g.abbr})` : ""}: ${g.definition}` : "";
+  };
+  ["#lInd", "#lBase", "#lSeries"].forEach((id) => $(id).addEventListener("change", sync));
+  sync();
+  $("#lFetch").onclick = fetchLive;
+  $("#lExport").onclick = (e) => {
+    if (!lLast) return;
+    const g = glossaryFor(lLast.name);
+    const sheets = [{ name: lLast.name, title: `${lLast.name}: MoSPI National Accounts`, notes: [`Query: ${lLast.query}`, `Source: ${MOSPI_API}`], columns: lLast.columns, rows: lLast.rows }];
+    if (g) sheets.push({ name: "Definition", columns: ["Term", "Abbreviation", "Definition", "Formula", "Note"], rows: [[g.term, g.abbr, g.definition, g.formula || "", g.note || ""]] });
+    exportExcel(e.currentTarget, `nas-${lLast.name.toLowerCase().replace(/\W+/g, "-")}`, sheets);
+  };
+}
+async function fetchLive() {
+  const btn = $("#lFetch"), msg = $("#lMsg");
+  const params = { base_year: $("#lBase").value, series: $("#lSeries").value, frequency_code: $("#lFreq").value, indicator_code: $("#lInd").value, Format: "JSON" };
+  if ($("#lYear").value.trim()) params.year = $("#lYear").value.replace(/\s/g, "");
+  if (!$("#lStateWrap").hidden && $("#lState").value.trim()) params.state_code = $("#lState").value.replace(/\s/g, "");
+  btn.disabled = true;
+  msg.innerHTML = `<div class="banner">Fetching from MoSPI…</div>`;
+  const PAGE = 500, recs = [];
+  try {
+    for (let page = 1; page <= 20; page++) {
+      const qs = new URLSearchParams({ ...params, limit: PAGE, page });
+      const resp = await fetch(`${MOSPI_API}/api/nas/getNASData?${qs}`, { headers: { Accept: "application/json" } });
+      if (!resp.ok) throw new Error(`MoSPI answered HTTP ${resp.status}`);
+      const body = await resp.json();
+      if (body && body.statusCode === false) { if (page === 1) throw new Error(body.message || "MoSPI rejected the query"); break; }
+      const batch = extractRecords(body);
+      recs.push(...batch);
+      if (batch.length < PAGE) break;
+    }
+  } catch (e) {
+    const blocked = e instanceof TypeError;
+    msg.innerHTML = `<div class="banner error">${blocked
+      ? "Your browser couldn't get data from MoSPI's API. MoSPI may not allow requests from other websites, or the API may be down. Instead, download the Excel file from the <a href=\"#reports\">Reports</a> links and open it in <a href=\"#import\">Import Excel</a>."
+      : esc(e.message) + ". Try another base year, series or frequency."}</div>`;
+    btn.disabled = false;
+    return;
+  }
+  btn.disabled = false;
+  if (!recs.length) { msg.innerHTML = `<div class="banner">MoSPI returned no rows for this query. Try another base year, series or frequency.</div>`; $("#lChartCard").hidden = $("#lTableCard").hidden = true; return; }
+  msg.innerHTML = "";
+  const columns = [...new Set(recs.flatMap((rec) => Object.keys(rec)))];
+  const rows = recs.map((rec) => columns.map((c) => (rec[c] !== null && typeof rec[c] === "object" ? JSON.stringify(rec[c]) : rec[c])));
+  const ind = INDICATORS.find((d) => String(d.indicator_code) === params.indicator_code);
+  lLast = { name: ind ? ind.name : "NAS data", columns, rows, query: Object.entries(params).map(([k, v]) => `${k}=${v}`).join(", ") };
+  $("#lTableCard").hidden = false;
+  renderTable($("#lTable"), columns, rows, { countEl: $("#lCount"), searchEl: $("#lSearch") });
+  chartBuilder("l", columns, rows);
+}
+
 route();
 initOverview(); initReports(); initDefinitions(); initImport();
-getDownloads().then((dl) => { if (!dl) $$("#ovExport,#relExport,#gExport,#iExport").forEach((b) => (b.title = "Saving files isn't available in this view")); });
+if (!IN_ARTIFACT) initLive();
+getDownloads().then((dl) => { if (IN_ARTIFACT && !dl) $$("#ovExport,#relExport,#gExport,#iExport").forEach((b) => (b.title = "Saving files isn't available in this view")); });
 </script>

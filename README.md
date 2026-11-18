@@ -45,10 +45,19 @@ python -m pytest tests
 - Endpoint details come from MoSPI's own MCP server spec ([nso-india/esankhyiki-mcp](https://github.com/nso-india/esankhyiki-mcp), MIT). `backend/data/nas_indicators.json` is copied from that repo.
 - Chart.js 4.4.1 is vendored in `frontend/vendor` (MIT).
 
-## Tablet / phone version (no server)
+## Tablet / phone version (GitHub Pages, no server)
 
-`hosted/` builds a single-file version of the dashboard that runs in any browser, so it works on a tablet. It includes the Overview, Reports (links plus the release cycle), Definitions and Import Excel tabs, and exports to Excel. It **cannot** fetch from MoSPI: there is no backend, so the live Data Explorer and the reports scraper aren't included. Instead, download a report's Excel file from MoSPI and open it in Import Excel.
+`docs/index.html` is a single-file version of the dashboard that runs in any browser. It has the Overview, **Live data** (calls MoSPI's API directly from your browser), Reports (links plus the release cycle), Definitions and Import Excel tabs, all with Excel export.
+
+**Turn it on (works from a tablet browser):**
+1. On GitHub, open the repo, then **Settings → Pages**.
+2. Under *Build and deployment*, set Source to **Deploy from a branch**. Pick the branch that contains `docs/` and the **/docs** folder, then **Save**.
+3. After a minute or two the site is live at `https://<your-username>.github.io/EconDashboard/`.
+
+Live data only works if MoSPI's API accepts requests from other websites (CORS). If it doesn't, the tab says so. Then download the Excel file from the Reports links and open it in Import Excel. The reports scraper needs the Python server, so it isn't in this version.
+
+To rebuild after changing `hosted/template.html` or `backend/data/*.json`:
 
 ```bash
-python hosted/build.py   # writes hosted/dist/index.html from template.html + backend/data/*.json
+python hosted/build.py   # writes docs/index.html (GitHub Pages) and hosted/dist/index.html (claude.ai page)
 ```
