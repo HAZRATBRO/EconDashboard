@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>National Accounts Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/vendor/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>National Accounts Dashboard</h1>
+    <div class="sub">India &middot; data and reports from MoSPI / NSO</div>
+  </div>
+  <div class="status-dots" id="status" title="Reachability of MoSPI from this server">
+    <span><i class="dot"></i>mospi.gov.in</span><span><i class="dot"></i>MoSPI API</span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-view="overview" aria-selected="true">Overview</button>
+    <button role="tab" data-view="explorer">Data Explorer</button>
+    <button role="tab" data-view="reports">Reports</button>
+    <button role="tab" data-view="definitions">Definitions</button>
+    <button role="tab" data-view="import">Import Excel</button>
+    <button class="btn small" id="themeToggle" title="Toggle light/dark theme">◐ Theme</button>
+  </nav>
+</header>
+
+<main>
+  <!-- OVERVIEW -->
+  <section class="view active" id="overview">
+    <h2>Overview</h2>
+    <p class="lede">Headline GDP aggregates. Use the Data Explorer to pull any National Accounts indicator live from MoSPI.</p>
+    <div class="banner" id="snapshotBanner"></div>
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid two">
+      <div class="card"><h3>GDP level</h3><div class="legend" id="lvlLegend"></div><div class="chart-box"><canvas id="lvlChart"></canvas></div></div>
+      <div class="card"><h3>Real GDP growth, % year-on-year</h3><div class="chart-box"><canvas id="growthChart"></canvas></div></div>
+    </div>
+    <div class="toolbar" style="margin-top:16px">
+      <button class="btn" id="overviewExport">Export overview to Excel</button>
+    </div>
+  </section>
+
+  <!-- EXPLORER -->
+  <section class="view" id="explorer">
+    <h2>Data Explorer</h2>
+    <p class="lede">Query MoSPI's National Accounts API (eSankhyiki). Indicators 1&ndash;22 are national; 23&ndash;34 are state-level and need a state code (37 = All-India). Quarterly data exists only for the 2022-23 base, current series.</p>
+    <div class="card">
+      <div class="toolbar">
+        <label class="field">Indicator<select id="xIndicator"><option>Loading indicators…</option></select></label>
+        <label class="field">Base year<select id="xBase"><option>2022-23</option><option>2011-12</option></select></label>
+        <label class="field">Series<select id="xSeries"><option>Current</option><option>Back</option></select></label>
+        <label class="field">Frequency<select id="xFreq"><option>Annually</option><option>Quarterly</option></select></label>
+        <label class="field">Year(s) <input type="text" id="xYear" placeholder="e.g. 2023-24,2024-25"></label>
+        <label class="field" id="xStateWrap" hidden>State code(s) <input type="text" id="xState" placeholder="01–37"></label>
+        <button class="btn" id="xFilters">Load filter options</button>
+        <button class="btn primary" id="xFetch">Fetch data</button>
+      </div>
+      <div id="xFilterBox" class="toolbar"></div>
+      <div id="xIndicatorDef" class="lede" style="margin:0"></div>
+    </div>
+    <div id="xMsg"></div>
+    <div id="xResult" hidden>
+      <div class="card" style="margin-top:16px">
+        <div class="toolbar" id="xChartControls"></div>
+        <div class="legend" id="xLegend"></div>
+        <div class="chart-box"><canvas id="xChart"></canvas></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="toolbar">
+          <input type="search" id="xSearch" placeholder="Filter rows…">
+          <button class="btn primary" id="xExport">Export to Excel</button>
+        </div>
+        <div class="count" id="xCount"></div>
+        <div class="table-wrap" id="xTable"></div>
+        <details class="raw"><summary>Response metadata</summary><pre id="xRaw"></pre></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORTS -->
+  <section class="view" id="reports">
+    <h2>Reports &amp; publications</h2>
+    <p class="lede">Live listing scraped from MoSPI's publications pages. Pick a page, or paste any mospi.gov.in listing URL.</p>
+    <div class="layout-side">
+      <div>
+        <div class="card">
+          <div class="toolbar">
+            <label class="field">Source page<select id="rSource"></select></label>
+            <label class="field">or URL<input type="url" id="rUrl" placeholder="https://www.mospi.gov.in/…"></label>
+            <button class="btn primary" id="rLoad">Load</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="rSearch" placeholder="Search titles…">
+            <label class="field">From<input type="text" id="rFrom" placeholder="YYYY or YYYY-MM-DD"></label>
+            <label class="field">File type<select id="rType"><option value="">All</option></select></label>
+            <button class="btn" id="rExport">Export list to Excel</button>
+          </div>
+        </div>
+        <div id="rMsg" style="margin-top:12px"></div>
+        <div class="count" id="rCount"></div>
+        <div class="report-list" id="rList"></div>
+        <div class="toolbar" style="margin-top:12px"><button class="btn" id="rNext" hidden>Next page →</button></div>
+      </div>
+      <aside>
+        <div class="card" id="rCats" hidden><h3>Sections on this page</h3><div class="chips" id="rCatList"></div></div>
+        <div class="card" style="margin-top:16px"><h3>National Accounts release cycle</h3><div class="series-list" id="seriesList"></div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- DEFINITIONS -->
+  <section class="view" id="definitions">
+    <h2>Definitions</h2>
+    <p class="lede">Key concepts used in India's National Accounts Statistics, following the System of National Accounts as applied by NSO, MoSPI.</p>
+    <div class="toolbar">
+      <input type="search" id="gSearch" placeholder="Search terms, e.g. GVA, deflator…">
+      <button class="btn" id="gExport">Export definitions to Excel</button>
+    </div>
+    <div class="chips" id="gCats"></div>
+    <div class="gloss" id="gList"></div>
+  </section>
+
+  <!-- IMPORT -->
+  <section class="view" id="import">
+    <h2>Import a MoSPI Excel statement</h2>
+    <p class="lede">MoSPI publishes NAS statements and press-release annexes as .xlsx files. Upload one to view, chart and re-export it.</p>
+    <div class="card">
+      <div class="toolbar">
+        <input type="file" id="iFile" accept=".xlsx,.xlsm">
+        <button class="btn primary" id="iUpload">Open</button>
+        <button class="btn" id="iExport" hidden>Export all sheets</button>
+      </div>
+      <div id="iMsg"></div>
+      <div class="sheet-tabs" id="iTabs"></div>
+      <div id="iNotes" class="lede"></div>
+    </div>
+    <div id="iResult" hidden>
+      <div class="card" style="margin-top:16px">
+        <div class="toolbar" id="iChartControls"></div>
+        <div class="legend" id="iLegend"></div>
+        <div class="chart-box"><canvas id="iChart"></canvas></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <input type="search" id="iSearch" placeholder="Filter rows…">
+        <div class="count" id="iCount"></div>
+        <div class="table-wrap" id="iTable"></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

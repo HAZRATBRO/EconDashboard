@@ -1,0 +1,22 @@
+{
+  "title": "India GDP, 2011-12 to 2024-25 (2011-12 base series)",
+  "unit": "Rs. lakh crore",
+  "status": "Offline reference snapshot. Values are as published in MoSPI press releases up to the Provisional Estimates of May 2025 (2011-12 base), entered by hand and NOT verified against the source in this build. MoSPI has since moved to a 2022-23 base series. Use the Data Explorer (live MoSPI API) for current official figures.",
+  "columns": ["Year", "Real GDP (constant 2011-12 prices)", "Nominal GDP (current prices)"],
+  "rows": [
+    ["2011-12", 87.36, 87.36],
+    ["2012-13", 92.13, 99.44],
+    ["2013-14", 98.01, 112.34],
+    ["2014-15", 105.28, 124.68],
+    ["2015-16", 113.69, 137.72],
+    ["2016-17", 123.08, 153.92],
+    ["2017-18", 131.44, 170.90],
+    ["2018-19", 139.93, 188.87],
+    ["2019-20", 145.35, 201.04],
+    ["2020-21", 136.87, 198.54],
+    ["2021-22", 150.22, 235.97],
+    ["2022-23", 161.65, 268.90],
+    ["2023-24", 176.51, 301.23],
+    ["2024-25", 187.97, 330.68]
+  ]
+}
